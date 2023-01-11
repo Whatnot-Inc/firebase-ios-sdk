@@ -106,7 +106,10 @@ protocol SessionsProvider {
           }
         }
       } else {
-        Logger.logDebug("Session Event logging is disabled sessionsEnabled: \(self.settings.sessionsEnabled), shouldDispatchEvents: \(session.shouldDispatchEvents)")
+        Logger
+          .logDebug(
+            "Session Event logging is disabled sessionsEnabled: \(self.settings.sessionsEnabled), shouldDispatchEvents: \(session.shouldDispatchEvents)"
+          )
       }
     }
   }
