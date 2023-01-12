@@ -23,6 +23,8 @@
 #import "FirebaseAuth/Sources/Backend/RPC/FIRVerifyPasswordRequest.h"
 #import "FirebaseAuth/Sources/Public/FirebaseAuth/FIRAuth.h"
 
+static const NSDictionary *actionToStringMap;
+
 @implementation FIRAuthRecaptchaVerifier
 
 + (id)sharedRecaptchaVerifier {
@@ -30,11 +32,17 @@
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
     sharedRecaptchaVerifier = [[self alloc] init];
+    actionToStringMap = @{
+      @(FIRAuthRecaptchaActionSignInWithPassword) : @"signInWithPassword",
+      @(FIRAuthRecaptchaActionGetOobCode) : @"getOobCode",
+      @(FIRAuthRecaptchaActionSignUpPassword) : @"signUpPassword"
+    };
   });
   return sharedRecaptchaVerifier;
 }
 
 - (void)verifyForceRefresh:(BOOL)forceRefresh
+                    action:(FIRAuthRecaptchaAction)action
                 completion:(nullable FIRAuthRecaptchaTokenCallback)completion {
 #if TARGET_OS_IOS && !TARGET_OS_MACCATALYST
   [self retrieveSiteKeyForceRefresh:forceRefresh
@@ -43,7 +51,7 @@
                              completion(nil, error);
                            }
                            if (self->_recaptchaClient) {
-                             [self retrieveRecaptchaToken:completion];
+                             [self retrieveRecaptchaTokenWithAction:action completion:completion];
                            } else {
                              dispatch_async(dispatch_get_main_queue(), ^{
                                [Recaptcha
@@ -55,7 +63,8 @@
                                           return;
                                         }
                                         self->_recaptchaClient = recaptchaClient;
-                                        [self retrieveRecaptchaToken:completion];
+                                        [self retrieveRecaptchaTokenWithAction:action
+                                                                    completion:completion];
                                       }];
                              });
                            }
@@ -65,7 +74,6 @@
 
 - (void)retrieveSiteKeyForceRefresh:(BOOL)forceRefresh
                          completion:(nullable FIRAuthSiteKeyCallback)completion {
-  _agentSiteKey = @"6LeDgfohAAAAAB1WlMyMxg4WqgRw5-Gl4A2YUYB0";
   if (!forceRefresh) {
     if ([FIRAuth auth].tenantID == nil && _agentSiteKey != nil) {
       completion(_agentSiteKey, nil);
@@ -112,10 +120,11 @@
   }
 }
 
-- (void)retrieveRecaptchaToken:(nullable FIRAuthRecaptchaTokenCallback)completion {
+- (void)retrieveRecaptchaTokenWithAction:(FIRAuthRecaptchaAction)action
+                              completion:(nullable FIRAuthRecaptchaTokenCallback)completion {
 #if TARGET_OS_IOS && !TARGET_OS_MACCATALYST
   [_recaptchaClient
-                execute:[[RecaptchaAction alloc] initWithAction:RecaptchaActionTypeLogin]
+                execute:[[RecaptchaAction alloc] initWithCustomAction:actionToStringMap[@(action)]]
       completionHandler:^void(RecaptchaToken *_Nullable token, RecaptchaError *_Nullable error) {
         if (!token) {
           completion(nil, error);
@@ -129,7 +138,8 @@
 
 + (void)injectRecaptchaFields:(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *)request
                  forceRefresh:(BOOL)forceRefresh
-                  forProvider:(NSString *)provider
+                     provider:(NSString *)provider
+                       action:(FIRAuthRecaptchaAction)action
                    completion:(nullable FIRAuthInjectRequestCallback)completion {
   [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
       retrieveEnablementStatusForceRefresh:forceRefresh
@@ -138,6 +148,7 @@
                                   if (enablemnetStatus) {
                                     [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
                                         verifyForceRefresh:forceRefresh
+                                                    action:action
                                                 completion:^(NSString *_Nullable token,
                                                              NSError *_Nullable error) {
                                                   [request

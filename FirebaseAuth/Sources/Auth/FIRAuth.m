@@ -751,7 +751,8 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
     [FIRAuthRecaptchaVerifier
         injectRecaptchaFields:request
                  forceRefresh:NO
-                  forProvider:@"email"
+                     provider:@"email"
+                       action:FIRAuthRecaptchaActionSignInWithPassword
                    completion:^(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *request) {
                      [FIRAuthBackend
                          verifyPassword:(FIRVerifyPasswordRequest *)request
@@ -767,7 +768,9 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
                                      [FIRAuthRecaptchaVerifier
                                          injectRecaptchaFields:request
                                                   forceRefresh:YES
-                                                   forProvider:@"email"
+                                                      provider:@"email"
+                                                        action:
+                                                            FIRAuthRecaptchaActionSignInWithPassword
                                                     completion:^(
                                                         FIRIdentityToolkitRequest<FIRAuthRPCRequest>
                                                             *request) {
@@ -1615,6 +1618,7 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
 #if TARGET_OS_IOS
   [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
       verifyForceRefresh:YES
+                  action:FIRAuthRecaptchaActionSignUpPassword
               completion:^(NSString *_Nullable token, NSError *_Nullable error){
               }];
 #endif

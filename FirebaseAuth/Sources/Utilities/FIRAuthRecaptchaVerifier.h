@@ -32,6 +32,12 @@ typedef void (^FIRAuthEnablementStatusCallback)(BOOL enablemnetStatus, NSError *
 
 typedef void (^FIRAuthInjectRequestCallback)(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *request);
 
+typedef NS_ENUM(NSInteger, FIRAuthRecaptchaAction) {
+  FIRAuthRecaptchaActionSignInWithPassword,
+  FIRAuthRecaptchaActionGetOobCode,
+  FIRAuthRecaptchaActionSignUpPassword
+};
+
 @interface FIRAuthRecaptchaConfig : NSObject {
 }
 
@@ -52,12 +58,14 @@ typedef void (^FIRAuthInjectRequestCallback)(FIRIdentityToolkitRequest<FIRAuthRP
 + (id)sharedRecaptchaVerifier;
 
 - (void)verifyForceRefresh:(BOOL)forceRefresh
+                    action:(FIRAuthRecaptchaAction)action
                 completion:(nullable FIRAuthRecaptchaTokenCallback)completion
     API_AVAILABLE(ios(14));
 
 + (void)injectRecaptchaFields:(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *)request
                  forceRefresh:(BOOL)forceRefresh
-                  forProvider:(NSString *)provider
+                     provider:(NSString *)provider
+                       action:(FIRAuthRecaptchaAction)action
                    completion:(nullable FIRAuthInjectRequestCallback)completion
     API_AVAILABLE(ios(14));
 
