@@ -1610,17 +1610,15 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
   });
 }
 
-#if TARGET_OS_IOS
 - (void)initializeRecaptchaConfigWithCompletion:
     (nullable void (^)(NSError *_Nullable error))completion {
+#if TARGET_OS_IOS
   [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
       verifyForceRefresh:YES
-              completion:^(NSString *_Nullable token, NSError *_Nullable error) {
-                // TODO:
-                ;
+              completion:^(NSString *_Nullable token, NSError *_Nullable error){
               }];
-}
 #endif
+}
 
 #if TARGET_OS_IOS
 #pragma clang diagnostic push
