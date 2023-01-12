@@ -1610,6 +1610,7 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
   });
 }
 
+#if TARGET_OS_IOS
 - (void)initializeRecaptchaConfigWithCompletion:
     (nullable void (^)(NSError *_Nullable error))completion {
   [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
@@ -1619,6 +1620,7 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
                 ;
               }];
 }
+#endif
 
 #if TARGET_OS_IOS
 #pragma clang diagnostic push
