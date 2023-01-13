@@ -28,7 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property(nonatomic, nonnull, copy) NSString *siteKey;
 
-@property(nonatomic, nonnull, strong) NSMutableDictionary<NSString *, NSNumber *> *enablementStatus;
+@property(nonatomic, nonnull, strong) NSDictionary<NSString *, NSNumber *> *enablementStatus;
 
 @end
 
@@ -37,6 +37,10 @@ typedef void (^FIRAuthRecaptchaTokenCallback)(NSString *_Nullable token, NSError
 typedef void (^FIRAuthRecaptchaConfigCallback)(NSError *_Nullable error);
 
 typedef void (^FIRAuthInjectRequestCallback)(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *request);
+
+typedef NS_ENUM(NSInteger, FIRAuthRecaptchaProvider) {
+  FIRAuthRecaptchaProviderPassword,
+};
 
 typedef NS_ENUM(NSInteger, FIRAuthRecaptchaAction) {
   FIRAuthRecaptchaActionSignInWithPassword,
@@ -61,7 +65,7 @@ typedef NS_ENUM(NSInteger, FIRAuthRecaptchaAction) {
 
 - (void)injectRecaptchaFields:(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *)request
                  forceRefresh:(BOOL)forceRefresh
-                     provider:(NSString *)provider
+                     provider:(FIRAuthRecaptchaProvider)provider
                        action:(FIRAuthRecaptchaAction)action
                    completion:(nullable FIRAuthInjectRequestCallback)completion
     API_AVAILABLE(ios(14));

@@ -23,6 +23,7 @@
 #import "FirebaseAuth/Sources/Backend/RPC/FIRVerifyPasswordRequest.h"
 #import "FirebaseAuth/Sources/Public/FirebaseAuth/FIRAuth.h"
 
+static const NSDictionary *providerToStringMap;
 static const NSDictionary *actionToStringMap;
 
 static NSString *const kClientType = @"CLIENT_TYPE_IOS";
@@ -39,6 +40,9 @@ static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
     sharedRecaptchaVerifier = [[self alloc] init];
+
+    providerToStringMap = @{@(FIRAuthRecaptchaProviderPassword) : @"password"};
+
     actionToStringMap = @{
       @(FIRAuthRecaptchaActionSignInWithPassword) : @"signInWithPassword",
       @(FIRAuthRecaptchaActionGetOobCode) : @"getOobCode",
@@ -48,7 +52,7 @@ static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
   return sharedRecaptchaVerifier;
 }
 
-- (NSString *)currentSiteKey {
+- (NSString *)siteKey {
   if ([FIRAuth auth].tenantID == nil) {
     return self->_agentConfig.siteKey;
   } else {
@@ -56,8 +60,13 @@ static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
   }
 }
 
-- (BOOL)currentEnablementStatusForProvider:(NSString *)provider {
-  return YES;
+- (BOOL)enablementStatusForProvider:(FIRAuthRecaptchaProvider)provider {
+  if ([FIRAuth auth].tenantID == nil) {
+    return self->_agentConfig.enablementStatus[providerToStringMap[@(provider)]];
+  } else {
+    return self->_tenantConfigs[[FIRAuth auth].tenantID]
+        .enablementStatus[providerToStringMap[@(provider)]];
+  }
 }
 
 - (void)verifyForceRefresh:(BOOL)forceRefresh
@@ -75,7 +84,7 @@ static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
                                    } else {
                                      dispatch_async(dispatch_get_main_queue(), ^{
                                        [Recaptcha
-                                           getClientWithSiteKey:[self currentSiteKey]
+                                           getClientWithSiteKey:[self siteKey]
                                               completionHandler:^void(
                                                   RecaptchaClient *recaptchaClient,
                                                   RecaptchaError *error) {
@@ -118,12 +127,22 @@ static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
                   }
                   FIRAuthRecaptchaConfig *config = [[FIRAuthRecaptchaConfig alloc] init];
                   config.siteKey = [response.recaptchaKey componentsSeparatedByString:@"/"][3];
+
                   // TODO(chuanr@): retrieve provider enablement status when backend is ready
+                  if (!forceRefresh) {
+                    config.enablementStatus = @{@"password" : @NO};
+                  } else {
+                    config.enablementStatus = @{@"password" : @YES};
+                  }
+
                   if ([FIRAuth auth].tenantID == nil) {
                     self->_agentConfig = config;
                     completion(nil);
                     return;
                   } else {
+                    if (!self->_tenantConfigs) {
+                      self->_tenantConfigs = [[NSMutableDictionary alloc] init];
+                    }
                     self->_tenantConfigs[[FIRAuth auth].tenantID] = config;
                     completion(nil);
                     return;
@@ -149,23 +168,22 @@ static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
 
 - (void)injectRecaptchaFields:(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *)request
                  forceRefresh:(BOOL)forceRefresh
-                     provider:(NSString *)provider
+                     provider:(FIRAuthRecaptchaProvider)provider
                        action:(FIRAuthRecaptchaAction)action
                    completion:(nullable FIRAuthInjectRequestCallback)completion {
   [self retrieveRecaptchaConfigForceRefresh:forceRefresh
                                  completion:^(NSError *_Nullable error) {
-                                   if ([self currentEnablementStatusForProvider:provider]) {
-                                     [self
-                                         verifyForceRefresh:forceRefresh
-                                                     action:action
-                                                 completion:^(NSString *_Nullable token,
-                                                              NSError *_Nullable error) {
-                                                   [request
-                                                       injectRecaptchaFields:token
-                                                            recaptchaVersion:kRecaptchaVersion
-                                                                  clientType:kClientType];
-                                                   completion(request);
-                                                 }];
+                                   if ([self enablementStatusForProvider:provider]) {
+                                     [self verifyForceRefresh:forceRefresh
+                                                       action:action
+                                                   completion:^(NSString *_Nullable token,
+                                                                NSError *_Nullable error) {
+                                                     [request
+                                                         injectRecaptchaFields:token
+                                                              recaptchaVersion:kRecaptchaVersion
+                                                                    clientType:kClientType];
+                                                     completion(request);
+                                                   }];
                                    } else {
                                      [request injectRecaptchaFields:nil
                                                    recaptchaVersion:kRecaptchaVersion

@@ -751,7 +751,7 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
     [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
         injectRecaptchaFields:request
                  forceRefresh:NO
-                     provider:@"email"
+                     provider:FIRAuthRecaptchaProviderPassword
                        action:FIRAuthRecaptchaActionSignInWithPassword
                    completion:^(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *request) {
                      [FIRAuthBackend
@@ -768,7 +768,7 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
                                      [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
                                          injectRecaptchaFields:request
                                                   forceRefresh:YES
-                                                      provider:@"email"
+                                                      provider:FIRAuthRecaptchaProviderPassword
                                                         action:
                                                             FIRAuthRecaptchaActionSignInWithPassword
                                                     completion:^(
