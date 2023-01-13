@@ -25,6 +25,9 @@
 
 static const NSDictionary *actionToStringMap;
 
+static NSString *const kClientType = @"CLIENT_TYPE_IOS";
+static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
+
 @implementation FIRAuthRecaptchaConfig
 
 @end
@@ -103,8 +106,8 @@ static const NSDictionary *actionToStringMap;
     }
   }
   FIRGetRecaptchaConfigRequest *request =
-      [[FIRGetRecaptchaConfigRequest alloc] initWithClientType:@"CLIENT_TYPE_IOS"
-                                                       version:@"RECAPTCHA_ENTERPRISE"
+      [[FIRGetRecaptchaConfigRequest alloc] initWithClientType:kClientType
+                                                       version:kRecaptchaVersion
                                           requestConfiguration:[FIRAuth auth].requestConfiguration];
   [FIRAuthBackend
       getRecaptchaConfig:request
@@ -159,14 +162,14 @@ static const NSDictionary *actionToStringMap;
                                                               NSError *_Nullable error) {
                                                    [request
                                                        injectRecaptchaFields:token
-                                                            recaptchaVersion:@"RECAPTCHA_ENTERPRISE"
-                                                                  clientType:@"CLIENT_TYPE_IOS"];
+                                                            recaptchaVersion:kRecaptchaVersion
+                                                                  clientType:kClientType];
                                                    completion(request);
                                                  }];
                                    } else {
                                      [request injectRecaptchaFields:nil
-                                                   recaptchaVersion:@"RECAPTCHA_ENTERPRISE"
-                                                         clientType:@"CLIENT_TYPE_IOS"];
+                                                   recaptchaVersion:kRecaptchaVersion
+                                                         clientType:kClientType];
                                      completion(request);
                                    }
                                  }];
