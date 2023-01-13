@@ -24,11 +24,17 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@interface FIRAuthRecaptchaConfig : NSObject
+
+@property(nonatomic, nonnull, copy) NSString *siteKey;
+
+@property(nonatomic, nonnull, strong) NSMutableDictionary<NSString *, NSNumber *> *enablementStatus;
+
+@end
+
 typedef void (^FIRAuthRecaptchaTokenCallback)(NSString *_Nullable token, NSError *_Nullable error);
 
-typedef void (^FIRAuthSiteKeyCallback)(NSString *_Nullable siteKey, NSError *_Nullable error);
-
-typedef void (^FIRAuthEnablementStatusCallback)(BOOL enablemnetStatus, NSError *_Nullable error);
+typedef void (^FIRAuthRecaptchaConfigCallback)(NSError *_Nullable error);
 
 typedef void (^FIRAuthInjectRequestCallback)(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *request);
 
@@ -38,31 +44,22 @@ typedef NS_ENUM(NSInteger, FIRAuthRecaptchaAction) {
   FIRAuthRecaptchaActionSignUpPassword
 };
 
-@interface FIRAuthRecaptchaConfig : NSObject {
-}
-
-@end
-
 @interface FIRAuthRecaptchaVerifier : NSObject {
 #if TARGET_OS_IOS && !TARGET_OS_MACCATALYST
   RecaptchaClient *_recaptchaClient;
 #endif
 
-  NSString *_agentSiteKey;
-  NSMutableDictionary<NSString *, NSString *> *_tenantSiteKeys;
-
-  FIRAuthRecaptchaConfig *_agentRecaptchaConfig;
-  NSMutableDictionary<NSString *, FIRAuthRecaptchaConfig *> *_tenantRecaptchaConfigs;
+  FIRAuthRecaptchaConfig *_agentConfig;
+  NSMutableDictionary<NSString *, FIRAuthRecaptchaConfig *> *_tenantConfigs;
 }
 
 + (id)sharedRecaptchaVerifier;
 
-- (void)verifyForceRefresh:(BOOL)forceRefresh
-                    action:(FIRAuthRecaptchaAction)action
-                completion:(nullable FIRAuthRecaptchaTokenCallback)completion
+- (void)retrieveRecaptchaConfigForceRefresh:(BOOL)forceRefresh
+                                 completion:(nullable FIRAuthRecaptchaConfigCallback)completion
     API_AVAILABLE(ios(14));
 
-+ (void)injectRecaptchaFields:(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *)request
+- (void)injectRecaptchaFields:(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *)request
                  forceRefresh:(BOOL)forceRefresh
                      provider:(NSString *)provider
                        action:(FIRAuthRecaptchaAction)action

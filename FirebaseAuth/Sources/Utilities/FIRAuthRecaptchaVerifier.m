@@ -25,6 +25,10 @@
 
 static const NSDictionary *actionToStringMap;
 
+@implementation FIRAuthRecaptchaConfig
+
+@end
+
 @implementation FIRAuthRecaptchaVerifier
 
 + (id)sharedRecaptchaVerifier {
@@ -41,46 +45,60 @@ static const NSDictionary *actionToStringMap;
   return sharedRecaptchaVerifier;
 }
 
+- (NSString *)currentSiteKey {
+  if ([FIRAuth auth].tenantID == nil) {
+    return self->_agentConfig.siteKey;
+  } else {
+    return self->_tenantConfigs[[FIRAuth auth].tenantID].siteKey;
+  }
+}
+
+- (BOOL)currentEnablementStatusForProvider:(NSString *)provider {
+  return YES;
+}
+
 - (void)verifyForceRefresh:(BOOL)forceRefresh
                     action:(FIRAuthRecaptchaAction)action
                 completion:(nullable FIRAuthRecaptchaTokenCallback)completion {
 #if TARGET_OS_IOS && !TARGET_OS_MACCATALYST
-  [self retrieveSiteKeyForceRefresh:forceRefresh
-                         completion:^(NSString *_Nullable siteKey, NSError *_Nullable error) {
-                           if (error) {
-                             completion(nil, error);
-                           }
-                           if (self->_recaptchaClient) {
-                             [self retrieveRecaptchaTokenWithAction:action completion:completion];
-                           } else {
-                             dispatch_async(dispatch_get_main_queue(), ^{
-                               [Recaptcha
-                                   getClientWithSiteKey:siteKey
-                                      completionHandler:^void(RecaptchaClient *recaptchaClient,
-                                                              RecaptchaError *error) {
-                                        if (!recaptchaClient) {
-                                          completion(nil, error);
-                                          return;
-                                        }
-                                        self->_recaptchaClient = recaptchaClient;
-                                        [self retrieveRecaptchaTokenWithAction:action
-                                                                    completion:completion];
-                                      }];
-                             });
-                           }
-                         }];
+  [self retrieveRecaptchaConfigForceRefresh:forceRefresh
+                                 completion:^(NSError *_Nullable error) {
+                                   if (error) {
+                                     completion(nil, error);
+                                   }
+                                   if (self->_recaptchaClient) {
+                                     [self retrieveRecaptchaTokenWithAction:action
+                                                                 completion:completion];
+                                   } else {
+                                     dispatch_async(dispatch_get_main_queue(), ^{
+                                       [Recaptcha
+                                           getClientWithSiteKey:[self currentSiteKey]
+                                              completionHandler:^void(
+                                                  RecaptchaClient *recaptchaClient,
+                                                  RecaptchaError *error) {
+                                                if (!recaptchaClient) {
+                                                  completion(nil, error);
+                                                  return;
+                                                }
+                                                self->_recaptchaClient = recaptchaClient;
+                                                [self retrieveRecaptchaTokenWithAction:action
+                                                                            completion:completion];
+                                              }];
+                                     });
+                                   }
+                                 }];
 #endif
 }
 
-- (void)retrieveSiteKeyForceRefresh:(BOOL)forceRefresh
-                         completion:(nullable FIRAuthSiteKeyCallback)completion {
+- (void)retrieveRecaptchaConfigForceRefresh:(BOOL)forceRefresh
+                                 completion:(nullable FIRAuthRecaptchaConfigCallback)completion {
   if (!forceRefresh) {
-    if ([FIRAuth auth].tenantID == nil && _agentSiteKey != nil) {
-      completion(_agentSiteKey, nil);
+    if ([FIRAuth auth].tenantID == nil && _agentConfig != nil) {
+      completion(nil);
       return;
     }
-    if ([FIRAuth auth].tenantID != nil && _tenantSiteKeys[[FIRAuth auth].tenantID] != nil) {
-      completion(_tenantSiteKeys[[FIRAuth auth].tenantID], nil);
+    if ([FIRAuth auth].tenantID != nil && _tenantConfigs[[FIRAuth auth].tenantID] != nil) {
+      completion(nil);
       return;
     }
   }
@@ -88,36 +106,26 @@ static const NSDictionary *actionToStringMap;
       [[FIRGetRecaptchaConfigRequest alloc] initWithClientType:@"CLIENT_TYPE_IOS"
                                                        version:@"RECAPTCHA_ENTERPRISE"
                                           requestConfiguration:[FIRAuth auth].requestConfiguration];
-  [FIRAuthBackend getRecaptchaConfig:request
-                            callback:^(FIRGetRecaptchaConfigResponse *_Nullable response,
-                                       NSError *_Nullable error) {
-                              if (error) {
-                                completion(nil, error);
-                              }
-                              NSString *siteKey =
-                                  [response.recaptchaKey componentsSeparatedByString:@"/"][3];
-                              if ([FIRAuth auth].tenantID == nil) {
-                                self->_agentSiteKey = siteKey;
-                                completion(siteKey, nil);
-                                return;
-                              }
-                              if ([FIRAuth auth].tenantID != nil) {
-                                self->_tenantSiteKeys[[FIRAuth auth].tenantID] = siteKey;
-                                completion(siteKey, nil);
-                                return;
-                              }
-                            }];
-}
-
-- (void)retrieveEnablementStatusForceRefresh:(BOOL)forceRefresh
-                                 forProvider:(NSString *)provider
-                                  completion:(nullable FIRAuthEnablementStatusCallback)completion {
-  // TODO(chuanr@): retrieve provider enablement status when backend is ready
-  if (forceRefresh) {
-    completion(YES, nil);
-  } else {
-    completion(NO, nil);
-  }
+  [FIRAuthBackend
+      getRecaptchaConfig:request
+                callback:^(FIRGetRecaptchaConfigResponse *_Nullable response,
+                           NSError *_Nullable error) {
+                  if (error) {
+                    completion(error);
+                  }
+                  FIRAuthRecaptchaConfig *config = [[FIRAuthRecaptchaConfig alloc] init];
+                  config.siteKey = [response.recaptchaKey componentsSeparatedByString:@"/"][3];
+                  // TODO(chuanr@): retrieve provider enablement status when backend is ready
+                  if ([FIRAuth auth].tenantID == nil) {
+                    self->_agentConfig = config;
+                    completion(nil);
+                    return;
+                  } else {
+                    self->_tenantConfigs[[FIRAuth auth].tenantID] = config;
+                    completion(nil);
+                    return;
+                  }
+                }];
 }
 
 - (void)retrieveRecaptchaTokenWithAction:(FIRAuthRecaptchaAction)action
@@ -136,34 +144,32 @@ static const NSDictionary *actionToStringMap;
 #endif
 }
 
-+ (void)injectRecaptchaFields:(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *)request
+- (void)injectRecaptchaFields:(FIRIdentityToolkitRequest<FIRAuthRPCRequest> *)request
                  forceRefresh:(BOOL)forceRefresh
                      provider:(NSString *)provider
                        action:(FIRAuthRecaptchaAction)action
                    completion:(nullable FIRAuthInjectRequestCallback)completion {
-  [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
-      retrieveEnablementStatusForceRefresh:forceRefresh
-                               forProvider:provider
-                                completion:^(BOOL enablemnetStatus, NSError *_Nullable error) {
-                                  if (enablemnetStatus) {
-                                    [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
-                                        verifyForceRefresh:forceRefresh
-                                                    action:action
-                                                completion:^(NSString *_Nullable token,
-                                                             NSError *_Nullable error) {
-                                                  [request
-                                                      injectRecaptchaFields:token
-                                                           recaptchaVersion:@"RECAPTCHA_ENTERPRISE"
-                                                                 clientType:@"CLIENT_TYPE_IOS"];
-                                                  completion(request);
-                                                }];
-                                  } else {
-                                    [request injectRecaptchaFields:nil
-                                                  recaptchaVersion:@"RECAPTCHA_ENTERPRISE"
-                                                        clientType:@"CLIENT_TYPE_IOS"];
-                                    completion(request);
-                                  }
-                                }];
+  [self retrieveRecaptchaConfigForceRefresh:forceRefresh
+                                 completion:^(NSError *_Nullable error) {
+                                   if ([self currentEnablementStatusForProvider:provider]) {
+                                     [self
+                                         verifyForceRefresh:forceRefresh
+                                                     action:action
+                                                 completion:^(NSString *_Nullable token,
+                                                              NSError *_Nullable error) {
+                                                   [request
+                                                       injectRecaptchaFields:token
+                                                            recaptchaVersion:@"RECAPTCHA_ENTERPRISE"
+                                                                  clientType:@"CLIENT_TYPE_IOS"];
+                                                   completion(request);
+                                                 }];
+                                   } else {
+                                     [request injectRecaptchaFields:nil
+                                                   recaptchaVersion:@"RECAPTCHA_ENTERPRISE"
+                                                         clientType:@"CLIENT_TYPE_IOS"];
+                                     completion(request);
+                                   }
+                                 }];
 }
 
 @end

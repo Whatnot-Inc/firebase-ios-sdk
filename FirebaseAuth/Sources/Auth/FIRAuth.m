@@ -748,7 +748,7 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
   }
   if (@available(iOS 14, *)) {
 #if TARGET_OS_IOS && !TARGET_OS_MACCATALYST
-    [FIRAuthRecaptchaVerifier
+    [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
         injectRecaptchaFields:request
                  forceRefresh:NO
                      provider:@"email"
@@ -765,7 +765,7 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
                                        [[underlyingError.userInfo
                                            objectForKey:FIRAuthErrorUserInfoDeserializedResponseKey]
                                                [@"message"] hasPrefix:@"MISSING_RECAPTCHA_TOKEN"]) {
-                                     [FIRAuthRecaptchaVerifier
+                                     [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
                                          injectRecaptchaFields:request
                                                   forceRefresh:YES
                                                       provider:@"email"
@@ -1617,10 +1617,9 @@ static NSMutableDictionary *gKeychainServiceNameForAppName;
     (nullable void (^)(NSError *_Nullable error))completion {
 #if TARGET_OS_IOS
   [[FIRAuthRecaptchaVerifier sharedRecaptchaVerifier]
-      verifyForceRefresh:YES
-                  action:FIRAuthRecaptchaActionSignUpPassword
-              completion:^(NSString *_Nullable token, NSError *_Nullable error){
-              }];
+      retrieveRecaptchaConfigForceRefresh:YES
+                               completion:^(NSError *_Nullable error){
+                               }];
 #endif
 }
 
