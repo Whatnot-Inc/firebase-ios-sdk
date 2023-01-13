@@ -62,10 +62,10 @@ static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
 
 - (BOOL)enablementStatusForProvider:(FIRAuthRecaptchaProvider)provider {
   if ([FIRAuth auth].tenantID == nil) {
-    return self->_agentConfig.enablementStatus[providerToStringMap[@(provider)]];
+    return [self->_agentConfig.enablementStatus[providerToStringMap[@(provider)]] boolValue];
   } else {
-    return self->_tenantConfigs[[FIRAuth auth].tenantID]
-        .enablementStatus[providerToStringMap[@(provider)]];
+    return [self->_tenantConfigs[[FIRAuth auth].tenantID]
+                .enablementStatus[providerToStringMap[@(provider)]] boolValue];
   }
 }
 
