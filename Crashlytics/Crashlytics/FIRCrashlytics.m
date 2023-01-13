@@ -389,8 +389,8 @@ NSString *const FIRCLSGoogleTransportMappingID = @"1206";
 
 #pragma mark - FIRSessionsSubscriber
 
-- (void)onSessionIDChanged:(NSString *)sessionID {
-  FIRCLSDebugLog(@"Session ID changed: %@", sessionID);
+- (void)onSessionChanged:(FIRSessionDetails * _Nonnull)session {
+  FIRCLSDebugLog(@"Session ID changed: %@", session.sessionId);
 }
 
 - (BOOL)isDataCollectionEnabled {
