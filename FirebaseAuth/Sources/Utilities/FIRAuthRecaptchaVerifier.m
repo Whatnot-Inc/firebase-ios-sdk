@@ -71,7 +71,8 @@ static NSString *const kRecaptchaVersion = @"RECAPTCHA_ENTERPRISE";
 
 - (void)verifyForceRefresh:(BOOL)forceRefresh
                     action:(FIRAuthRecaptchaAction)action
-                completion:(nullable FIRAuthRecaptchaTokenCallback)completion {
+                completion:(nullable FIRAuthRecaptchaTokenCallback)completion
+    API_AVAILABLE(ios(14)) {
 #if TARGET_OS_IOS && !TARGET_OS_MACCATALYST
   [self retrieveRecaptchaConfigForceRefresh:forceRefresh
                                  completion:^(NSError *_Nullable error) {
