@@ -220,6 +220,13 @@
   [_authService
       fetchCheckinInfoWithHandler:^(FIRMessagingCheckinPreferences *preferences, NSError *error) {
         FIRMessaging_STRONGIFY(self);
+        if (self == nil) {
+          NSError *error = [NSError errorWithDomain:FIRMessagingErrorDomain
+                                               code:FIRMessagingErrorUnknown
+                                           userInfo:nil];
+          newHandler(nil, error);
+          return;
+        }
         if (error) {
           newHandler(nil, error);
           return;
@@ -229,6 +236,13 @@
         [self->_installations installationIDWithCompletion:^(NSString *_Nullable identifier,
                                                              NSError *_Nullable error) {
           FIRMessaging_STRONGIFY(self);
+          if (self == nil) {
+            NSError *error = [NSError errorWithDomain:FIRMessagingErrorDomain
+                                                 code:FIRMessagingErrorUnknown
+                                             userInfo:nil];
+            newHandler(nil, error);
+            return;
+          }
 
           if (error) {
             newHandler(nil, error);
@@ -274,6 +288,13 @@
       ^(FIRMessagingTokenOperationResult result, NSString *_Nullable token,
         NSError *_Nullable error) {
         FIRMessaging_STRONGIFY(self);
+        if (self == nil) {
+          NSError *error = [NSError errorWithDomain:FIRMessagingErrorDomain
+                                               code:FIRMessagingErrorUnknown
+                                           userInfo:nil];
+          handler(nil, error);
+          return;
+        }
         if (error) {
           handler(nil, error);
           return;
